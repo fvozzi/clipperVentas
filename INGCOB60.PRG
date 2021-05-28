@@ -1,0 +1,167 @@
+SET SCOREBOARD ON
+SET BELL ON
+SET CONFIRM OFF
+SET DELETE ON
+SET CENTURY ON
+SET DATE BRITISH
+SET EXCLUSIVE OFF
+RESTORE FROM FISCAL.MEM
+DECLARE campos[2]
+SELECT 1
+USE DEUDORES INDEX DEU_NUM, DEU_NOM
+campos[1]="NUMERO"
+campos[2]="NOMBRE"
+SELECT 2
+USE MCTACTE INDEX MCC_CLA1, MCC_CLA2
+SELECT 3
+USE CONTABLE INDEX CON_NUM
+STORE 0 TO RV
+STORE 83 TO JJ
+STORE "" TO POS
+DO WHILE JJ = 83
+SET COLOR TO W/N
+RESTORE SCREEN FROM PANT1
+SET COLOR TO W+/RB
+@ 2,6 SAY "                  INGREZO DE COBRANZA"
+SET COLOR TO W/B
+@ 8,14 CLEAR TO 14,69
+@ 7,14,15,69 BOX &caja9
+@ 8,18 SAY "N§ de Cuenta:"
+@ 10,18 SAY "Fecha(dd/mm/aaaa):"
+@ 12,18 SAY "N£mero de Recibo:"
+@ 14,18 SAY "Importe:"
+STORE SPACE(30) TO RCLI
+STORE DATE() TO RVENC
+STORE 0 TO RNUM, RVALOR
+STORE SPACE(6) TO RCLI
+DO WHILE RCLI = "      "
+        STORE SPACE(6) TO RCLI
+        @ 8,42 GET RCLI
+        READ
+        SELECT 1
+        IF LASTKEY() = 18
+                SAVE SCREEN TO MP1
+                SEEK RCLI
+                SET ORDER TO 2
+                STORE 0 TO CONTROL
+                ******** LA MANTIENE ABIERTA HASTA QUE PRESIONAMOS ESC *******
+                DO WHILE EOF() .AND. CONTROL = 0
+                        STORE 0 TO CONTROL
+                        GO TOP
+                        KEYBOARD CHR(4)
+                        SET COLOR TO W/R
+                        @ 4,30 CLEAR TO 21,70
+                        @ 4,30,21,71 BOX &caja9
+                        DBEDIT(5,31,20,70,campos,"arts")
+                        ******* RESETA EL CONTADOR DE BUSQUEDA **************
+                        IF LEN(POS)>= 1
+                                POS = ""
+                        ENDIF
+
+                        RESTORE SCREEN FROM MP1
+                        SET COLOR TO W/B
+                        IF LASTKEY() = 13
+                                STORE STR(NUMERO,6) TO RCLI
+                        ENDIF
+                        IF LASTKEY() = 27
+                                STORE 1 TO CONTROL
+                                STORE SPACE(6) TO RCLI
+                                
+                        ENDIF
+                ENDDO
+                RESTORE SCREEN FROM MP1
+        ENDIF
+ENDDO
+SET ORDER TO 1
+SEEK VAL(RCLI)
+IF EOF()
+        LOOP
+ENDIF
+IF .NOT. EOF()
+STORE NUMERO TO RCLI
+STORE NOMBRE TO RNOMBRE
+ENDIF
+@ 8,32 SAY RCLI
+@ 8,39 SAY RNOMBRE
+@ 10,37 GET RVENC
+@ 12,36 GET RNUM PICTURE "###,###"
+@ 14,27 GET RVALOR PICTURE "###,###.##"
+READ
+STORE RVENC TO RFECHA
+STORE CTOD("01/07/1998") TO DESDE
+STORE CTOD("31/12/2020") TO HASTA
+@ 10,37 SAY RVENC
+@ 12,36 SAY RNUM PICTURE "###,###"
+@ 14,27 SAY RVALOR PICTURE "###,###.##"
+STORE RVALOR TO TFAC
+STORE 1 TO VMENU
+SET COLOR TO W+/RB
+@ 23,18 PROMPT "CONTINUAR"
+@ 23,37 PROMPT "CORREGIR"
+@ 23,56 PROMPT "ANULAR"
+MENU TO VMENU
+IF VMENU = 2
+LOOP
+ENDIF
+IF VMENU = 3
+        RETURN
+ENDIF
+IF VMENU = 1
+        SELECT 2
+        GO TOP
+        STORE STR(RCLI,6) TO BUSCAR 
+        SEEK BUSCAR
+        DO WHILE .NOT. EOF() .AND. CLIENTE = RCLI .AND. TFAC > 0
+        STORE SALDO TO R_IMP
+        IF TMOV = 1
+        IF R_IMP > 0
+        RLOCK()
+        IF TFAC > SALDO
+                TFAC = TFAC - SALDO
+                REPLACE SALDO WITH 0
+        ENDIF
+        IF TFAC = SALDO
+                TFAC = TFAC - SALDO
+                REPLACE SALDO WITH 0
+        ENDIF
+        IF TFAC < SALDO
+                REPLACE SALDO WITH SALDO - TFAC
+                TFAC = 0
+        ENDIF
+        UNLOCK
+        ENDIF
+        ENDIF
+        SKIP
+        ENDDO
+        RLOCK()
+        STORE "000000" + LTRIM(STR(RNUM)) TO JK
+        STORE "RECIBO " + RIGHT(JK,6) TO RCBTE
+        GO TOP
+        APPEND BLANK
+        REPLACE CLIENTE WITH RCLI, FECHA WITH RFECHA, TMOV WITH 2, CBTE WITH RCBTE, VALOR WITH RVALOR, SALDO WITH TFAC 
+        UNLOCK
+        SELECT 1
+        RLOCK()
+        REPLACE SALDO WITH SALDO - RVALOR
+        UNLOCK
+        SELECT 3
+        STORE 103 TO FH
+        SEEK FH
+        RLOCK()
+        REPLACE DEBITOS WITH DEBITOS + RVALOR
+        UNLOCK
+        RV = RV + RVALOR
+        SET COLOR TO W+/RB
+        STORE 1 TO PMENU
+        @ 23,5 CLEAR TO 23,70
+        @ 23,20 PROMPT "OTRA COBRANZA"
+        @ 23,52 PROMPT "FINALIZAR"
+        MENU TO PMENU
+        IF PMENU = 2
+        STORE 84 TO JJ
+        EXIT
+        ENDIF
+        ENDIF
+ENDDO
+CLOSE ALL
+RETURN
