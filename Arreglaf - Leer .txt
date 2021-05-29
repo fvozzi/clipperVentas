@@ -1,0 +1,24 @@
+Mapeo de archivos originales -> axiliares
+
+ORIGINAL		AUXILIAR
+
+MCTACTE 	-> 	AUXMCTE
+MOVIVA		-> 	AUXMIVA
+DEUDORES 	-> 	AUXDEUDO
+ARTICULO	->	AUXARTIC
+PROVEEDO 	-> 	AUXPROVE
+MPROVEED	->	AUXMPRO
+MIVAPROV	-> 	AUXMIVAP
+
+Pasos a seguir para restablecer archivos dañados:
+
+1) Hacer una copia de los archivos originales en otro direcctorio
+
+2) Vaciar los archivos auxiliares a usar (Comandos DELETE ALL y PACK)
+
+3) Ejecutar ArreglaF sobre los archivos a reparar
+
+4) Eliminar el archivo original y copiar el auxiliar con el nombre del original
+
+
+
